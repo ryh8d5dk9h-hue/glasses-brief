@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=600, initial-scale=1">
+<title>今日一覽</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 600px; height: 600px;
+    background: #000; color: #fff;
+    font-family: -apple-system, "PingFang HK", "Noto Sans HK", sans-serif;
+    overflow: hidden;
+  }
+  #app { width: 600px; height: 600px; padding: 24px; display: flex; flex-direction: column; }
+  header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 14px; border-bottom: 2px solid #333;
+  }
+  #date { font-size: 30px; font-weight: 700; }
+  #clock { font-size: 44px; font-weight: 700; color: #ffd60a; font-variant-numeric: tabular-nums; }
+  main { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding-top: 14px; }
+  section {
+    border: 2px solid #222; border-radius: 14px; padding: 14px 18px;
+    outline: none;
+  }
+  section.focused { border-color: #ffd60a; background: #111; }
+  section h2 { font-size: 24px; color: #aaa; margin-bottom: 8px; font-weight: 600; }
+  .lesson { display: flex; justify-content: space-between; font-size: 32px; padding: 6px 0; font-weight: 600; }
+  .lesson .time { color: #ffd60a; font-variant-numeric: tabular-nums; }
+  .lesson.next { background: #1a1a00; border-radius: 8px; padding: 6px 10px; margin: 0 -10px; }
+  .lesson.next .name::after { content: " ▶"; color: #ffd60a; font-size: 24px; }
+  .nolesson { font-size: 30px; color: #888; }
+  .bella { font-size: 34px; font-weight: 700; }
+  .bella .off { color: #7dffa8; } .bella .on { color: #fff; }
+  .weather { font-size: 30px; font-weight: 600; line-height: 1.5; }
+  .weather .sub { font-size: 24px; color: #aaa; }
+  footer { padding-top: 10px; border-top: 2px solid #333; font-size: 20px; color: #666; display: flex; justify-content: space-between; }
+  .hint { color: #444; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div id="date">--月--日 星期-</div>
+    <div id="clock">--:--</div>
+  </header>
+  <main>
+    <section class="focusable" id="sec-lessons" tabindex="0">
+      <h2>🎹 今日堂</h2>
+      <div id="lessons"></div>
+    </section>
+    <section class="focusable" id="sec-bella" tabindex="0">
+      <h2>💼 Bella</h2>
+      <div class="bella" id="bella"></div>
+    </section>
+    <section class="focusable" id="sec-weather" tabindex="0">
+      <h2>🌤️ 天氣</h2>
+      <div class="weather" id="weather"><span class="sub">載入中…</span></div>
+    </section>
+  </main>
+  <footer>
+    <span id="updated">資料更新於 --</span>
+    <span class="hint">↑↓ 選擇</span>
+  </footer>
+</div>
+
+<!-- DATA-START -->
+<script id="brief-data" type="application/json">
+{
+  "date": "2026-10-08",
+  "date_label": "10月8日 星期四",
+  "updated_at": "2026-10-08 07:30",
+  "lessons": [
+    {"name": "Amelie", "start": "14:00", "end": "15:00"},
+    {"name": "Robert", "start": "15:30", "end": "16:30"}
+  ],
+  "bella": {"status": "holiday", "label": "放假", "note": "連放 3 日,今日第 1 日"},
+  "weather_fallback": "大致天晴,27–29°C"
+}
+</script>
+<!-- DATA-END -->
+
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById('brief-data').textContent);
+
+  // Date + live clock
+  document.getElementById('date').textContent = data.date_label;
+  document.getElementById('updated').textContent = '資料更新於 ' + data.updated_at;
+  function tick() {
+    var d = new Date();
+    var h = String(d.getHours()).padStart(2, '0');
+    var m = String(d.getMinutes()).padStart(2, '0');
+    document.getElementById('clock').textContent = h + ':' + m;
+  }
+  tick(); setInterval(tick, 15000);
+
+  // Lessons
+  var box = document.getElementById('lessons');
+  if (!data.lessons.length) {
+    box.innerHTML = '<div class="nolesson">今日冇堂,好好休息</div>';
+  } else {
+    var now = new Date();
+    var nowMin = now.getHours() * 60 + now.getMinutes();
+    var html = '', nextMarked = false;
+    data.lessons.forEach(function (l) {
+      var sm = parseInt(l.start.split(':')[0], 10) * 60 + parseInt(l.start.split(':')[1], 10);
+      var cls = '';
+      if (!nextMarked && sm > nowMin - 60) { cls = 'next'; nextMarked = true; }
+      html += '<div class="lesson' + (cls ? ' ' + cls : '') + '"><span class="name">' +
+        escapeHtml(l.name) + '</span><span class="time">' + l.start + '–' + l.end + '</span></div>';
+    });
+    box.innerHTML = html;
+  }
+
+  // Bella
+  var b = document.getElementById('bella');
+  var bCls = data.bella.status === 'holiday' ? 'off' : 'on';
+  b.innerHTML = '<span class="' + bCls + '">' + escapeHtml(data.bella.label) + '</span>' +
+    (data.bella.note ? ' <span style="font-size:24px;color:#aaa">' + escapeHtml(data.bella.note) + '</span>' : '');
+
+  // Weather: live from Open-Meteo, fallback to generated text
+  var w = document.getElementById('weather');
+  function renderWeather(temp, rain) {
+    var t = Math.round(temp) + '°C';
+    var r = rain == null ? '' : '<div class="sub">降雨機率 ' + Math.round(rain) + '%</div>';
+    w.innerHTML = t + r;
+  }
+  var ctrl = new AbortController();
+  var timer = setTimeout(function () { ctrl.abort(); }, 6000);
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=22.3&longitude=114.17&current=temperature_2m,precipitation_probability&timezone=Asia%2FHong_Kong', { signal: ctrl.signal })
+    .then(function (res) { clearTimeout(timer); return res.json(); })
+    .then(function (j) {
+      if (j && j.current) renderWeather(j.current.temperature_2m, j.current.precipitation_probability);
+      else w.innerHTML = escapeHtml(data.weather_fallback);
+    })
+    .catch(function () { w.innerHTML = escapeHtml(data.weather_fallback); });
+
+  // D-pad navigation (Neural Band swipes = arrow keys)
+  var sections = Array.prototype.slice.call(document.querySelectorAll('section.focusable'));
+  var idx = 0;
+  function focus(i) {
+    idx = (i + sections.length) % sections.length;
+    sections.forEach(function (s, k) { s.classList.toggle('focused', k === idx); });
+    sections[idx].focus({ preventScroll: true });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { focus(idx + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { focus(idx - 1); e.preventDefault(); }
+  });
+  focus(0);
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+})();
+</script>
+</body>
+</html>
