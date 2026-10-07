@@ -64,6 +64,7 @@
     <span id="updated">資料更新於 --</span>
     <span class="hint">↑↓ 捲動</span>
   </footer>
+  <div id="debug" style="font-size:18px;color:#555;padding:4px 24px 0;">debug: 等緊 D-pad…</div>
 </div>
 
 <!-- DATA-START -->
@@ -179,8 +180,18 @@
   }
   document.addEventListener('keydown', function (e) {
     var step = 200;
-    if (e.key === 'ArrowDown') { main.scrollTop += step; highlight(); e.preventDefault(); }
-    else if (e.key === 'ArrowUp') { main.scrollTop -= step; highlight(); e.preventDefault(); }
+    var dbg = document.getElementById('debug');
+    if (dbg) dbg.textContent = 'debug: key=' + e.key + ' code=' + (e.code || '-');
+    if (e.key === 'ArrowDown' || e.key === 'Down') { main.scrollTop += step; highlight(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp' || e.key === 'Up') { main.scrollTop -= step; highlight(); e.preventDefault(); }
+  }, true);
+  // In case the D-pad moves native DOM focus instead of sending arrow keys:
+  document.addEventListener('focusin', function (e) {
+    var sec = e.target && e.target.closest ? e.target.closest('section.focusable') : null;
+    if (sec) {
+      try { sec.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+      highlight();
+    }
   });
   main.addEventListener('scroll', highlight, { passive: true });
   highlight();
