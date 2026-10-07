@@ -19,7 +19,8 @@
   }
   #date { font-size: 30px; font-weight: 700; }
   #clock { font-size: 44px; font-weight: 700; color: #ffd60a; font-variant-numeric: tabular-nums; }
-  main { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding-top: 14px; }
+  main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-top: 14px; scrollbar-width: none; }
+  main::-webkit-scrollbar { display: none; }
   section {
     border: 2px solid #222; border-radius: 14px; padding: 14px 18px;
     outline: none;
@@ -61,7 +62,7 @@
   </main>
   <footer>
     <span id="updated">資料更新於 --</span>
-    <span class="hint">↑↓ 選擇</span>
+    <span class="hint">↑↓ 捲動</span>
   </footer>
 </div>
 
@@ -164,19 +165,25 @@
     })
     .catch(function () { w.innerHTML = escapeHtml(data.weather_fallback); });
 
-  // D-pad navigation (Neural Band swipes = arrow keys)
+  // Scroll navigation: Neural Band swipes = arrow keys.
+  // The glasses browser may not auto-scroll on arrow keys, so do it explicitly.
+  var main = document.querySelector('main');
   var sections = Array.prototype.slice.call(document.querySelectorAll('section.focusable'));
-  var idx = 0;
-  function focus(i) {
-    idx = (i + sections.length) % sections.length;
-    sections.forEach(function (s, k) { s.classList.toggle('focused', k === idx); });
-    sections[idx].focus({ preventScroll: true });
+  function highlight() {
+    var top = main.scrollTop, best = 0, bestDist = Infinity;
+    sections.forEach(function (s, i) {
+      var d = Math.abs(s.offsetTop - top - 8);
+      if (d < bestDist) { bestDist = d; best = i; }
+    });
+    sections.forEach(function (s, i) { s.classList.toggle('focused', i === best); });
   }
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'ArrowDown') { focus(idx + 1); e.preventDefault(); }
-    else if (e.key === 'ArrowUp') { focus(idx - 1); e.preventDefault(); }
+    var step = 200;
+    if (e.key === 'ArrowDown') { main.scrollTop += step; highlight(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { main.scrollTop -= step; highlight(); e.preventDefault(); }
   });
-  focus(0);
+  main.addEventListener('scroll', highlight, { passive: true });
+  highlight();
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
