@@ -64,39 +64,33 @@
     <span id="updated">資料更新於 --</span>
     <span class="hint">↑↓ 捲動</span>
   </footer>
-  <div id="debug" style="font-size:18px;color:#555;padding:4px 24px 0;">debug: 等緊 D-pad…</div>
 </div>
 
 <!-- DATA-START -->
 <script id="brief-data" type="application/json">
 {
-  "date": "2026-10-08",
-  "date_label": "10月8日 星期四",
-  "updated_at": "2026-10-07 14:00",
+  "date": "2026-10-07",
+  "date_label": "10月7日 星期三",
+  "updated_at": "2026-10-07 14:52",
   "lessons": [
     {
-      "name": "Isabella",
+      "name": "Amelie",
+      "start": "14:00",
+      "end": "15:00"
+    },
+    {
+      "name": "Robert",
       "start": "15:30",
       "end": "16:30"
     },
     {
-      "name": "Aiden",
-      "start": "16:35",
-      "end": "17:35"
+      "name": "Avery",
+      "start": "16:30",
+      "end": "17:15"
     },
     {
-      "name": "Jacob",
-      "start": "17:35",
-      "end": "18:35"
-    },
-    {
-      "name": "Audrey",
-      "start": "18:35",
-      "end": "19:35"
-    },
-    {
-      "name": "Andersen",
-      "start": "20:00",
+      "name": "Charlie",
+      "start": "19:00",
       "end": "21:00"
     }
   ],
@@ -180,8 +174,6 @@
   }
   document.addEventListener('keydown', function (e) {
     var step = 200;
-    var dbg = document.getElementById('debug');
-    if (dbg) dbg.textContent = 'debug: key=' + e.key + ' code=' + (e.code || '-');
     if (e.key === 'ArrowDown' || e.key === 'Down') { main.scrollTop += step; highlight(); e.preventDefault(); }
     else if (e.key === 'ArrowUp' || e.key === 'Up') { main.scrollTop -= step; highlight(); e.preventDefault(); }
   }, true);
